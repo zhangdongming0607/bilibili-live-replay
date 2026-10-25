@@ -1,0 +1,13 @@
+[Unit]
+Description=biliup 自动录制投稿
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/srv/biliup
+ExecStart=/usr/local/bin/biliup server --auth
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

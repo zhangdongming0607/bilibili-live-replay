@@ -1,0 +1,14 @@
+{
+  "entries": [
+    {
+      "part": 1,
+      "start": 12.5,
+      "title": "虚构示例曲",
+      "artist": "示例作者",
+      "kind": "song",
+      "confidence": "candidate",
+      "evidence": "演示格式，未做识别",
+      "note": "待核对"
+    }
+  ]
+}
