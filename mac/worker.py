@@ -75,6 +75,16 @@ def remote_list(command):
         return None
 
 
+def catalog_for(streamer):
+    """录多位主播时用 LIVE_REPLAY_CATALOG_DIR/主播名.md，这位主播还没有曲库就用空模板，不借用别人的。"""
+    empty = REPO / 'examples' / 'catalog.md'
+    directory = os.environ.get('LIVE_REPLAY_CATALOG_DIR')
+    if directory:
+        path = Path(directory).expanduser() / f'{streamer}.md'
+        return path if streamer and path.is_file() else empty
+    return Path(os.environ.get('LIVE_REPLAY_CATALOG') or str(empty)).expanduser()
+
+
 def prepare(job, directory):
     inputs = directory / 'input'
     inputs.mkdir(parents=True, exist_ok=True)
@@ -88,11 +98,12 @@ def prepare(job, directory):
                 scp(f'{SERVER}:{source}', str(inputs / name))
         duration = part.get('duration') or 0
         lines.append(f'- P{n}：`P{n}.ogg`、`P{n}.paraformer.json`，时长 {int(duration) // 3600}:{int(duration) // 60 % 60:02d}:{int(duration) % 60:02d}')
-    catalog = Path((os.environ.get('LIVE_REPLAY_CATALOG') or str(REPO / 'examples' / 'catalog.md'))).expanduser()
-    shutil.copy(catalog, inputs / '曲库.md')
+    streamer = job.get('streamer') or ''
+    shutil.copy(catalog_for(streamer), inputs / '曲库.md')
     context = os.environ.get('LIVE_REPLAY_CONTEXT', '歌回录播；语言须按本场实际内容判断。')
     model = os.environ.get('LIVE_REPLAY_WHISPER_MODEL', '')
-    (inputs / 'context.md').write_text(context + '\n本地 Whisper 模型目录：' + (model or '未配置；先检查现有环境，不自动下载') + '\n', encoding='utf-8')
+    (inputs / 'context.md').write_text('主播：' + (streamer or '未知') + '\n' + context + '\n本地 Whisper 模型目录：'
+                                       + (model or '未配置；先检查现有环境，不自动下载') + '\n', encoding='utf-8')
     shutil.copytree(REPO / 'skills' / 'bilibili-live-replay', directory / 'skill', dirs_exist_ok=True)
     template = (REPO / 'mac' / 'TASK.md').read_text(encoding='utf-8')
     (directory / 'TASK.md').write_text(template.replace('__PARTS__', '\n'.join(lines)), encoding='utf-8')

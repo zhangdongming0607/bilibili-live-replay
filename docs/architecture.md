@@ -7,7 +7,8 @@
 会话目录：`state.json`、`audio-N.ogg`、`asr-N.json`、`subtitle-N.srt`、`axis/axis.json`、`axis/歌曲轴.txt`、`axis/method.md`。
 
 - `state.json.files`：最终视频绝对路径，按分 P 排列；`done` 是步骤执行成功，不是媒体完整性证明。
-- `axis-pending`：JSON 任务数组，包含 session、created_at、parts（part/duration/audio/asr）。
+- `state.json.streamer`：主播名，建会话时从录像文件名开头取（biliup 默认“主播名 + 开播时间”）；认不出时为空。只用于选曲库和通知文字，不用于定位稿件。
+- `axis-pending`：JSON 任务数组，包含 session、created_at、streamer、parts（part/duration/audio/asr）。
 - `axis-start / axis-done / axis-fail`：工作端状态回传；axis-done 校验枚举、时长、顺序和证据，并从 JSON 重建公开文字。
 - `review-pending`：当前版本摘要 `review_token`；确认必须匹配。摘要不是账号认证，审核人身份仍由配置的 sender ID 控制。
 - `comment-request SESSION TOKEN`：显式请求评论，服务器再次核对当前内容与稿件审核状态。

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""把以前几场的歌曲轴整理成曲库，给 Mac 上的 Codex 当线索。
+"""把一位主播以前几场的歌曲轴整理成曲库，给 Mac 上的 Codex 当线索。
 
-  python3 tools/catalog.py --out data/曲库.md 2026-10-10=路径 2026-10-17=路径 ...
+  python3 tools/catalog.py --streamer 主播名 --out 曲库目录/主播名.md 2026-10-10=路径 2026-10-17=路径 ...
+
+录多位主播时每人一份，放进 LIVE_REPLAY_CATALOG_DIR，文件名和录像文件名开头的主播名一致。
 
 路径可以是歌曲轴 JSON（entries 里有 title 或 song），也可以是“HH:MM:SS 歌名 — 原唱（备注）”格式的文本。
 """
@@ -36,6 +38,7 @@ def read_entries(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--out', required=True)
+    parser.add_argument('--streamer', default='', help='写进曲库标题')
     parser.add_argument('sources', nargs='+', help='场次=路径')
     args = parser.parse_args()
 
@@ -52,7 +55,7 @@ def main():
                 song['dates'].append(date)
 
     dates = sorted({s.split('=', 1)[0] for s in args.sources})
-    lines = ['# 曲库：历史歌曲线索',
+    lines = [f'# 曲库：{args.streamer}以前唱过的歌' if args.streamer else '# 曲库：历史歌曲线索',
              '',
              f'来自 {"、".join(dates)} 这几场的歌曲轴，共 {len(songs)} 首。只当线索：本场唱没唱、唱的是哪首，以本场的转写和检索证据为准；'
              '这里的原唱也可能有错，跟检索结果冲突时以检索为准。',

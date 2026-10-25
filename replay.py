@@ -49,6 +49,8 @@ DASHSCOPE = 'https://dashscope.aliyuncs.com'
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36'
 # B 站稿件 state：非负为已通过；这些负数是终态，等下去也不会过
 BILI_REJECTED = {-2: '被打回', -4: '被锁定', -16: '转码失败', -100: '已删除'}
+# biliup 默认的录像文件名是“主播名 + 开播时间”，例如 某某2026-10-25T13_29_56.flv
+RECORDING_NAME = re.compile(r'^(.+?)\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2}')
 
 
 def log(message):
@@ -160,6 +162,16 @@ class Session:
         return state
 
 
+def streamer_of(files):
+    """改过 biliup 文件名模板时认不出，返回空串；只影响曲库选择和通知文字。"""
+    match = RECORDING_NAME.match(Path(files[0]).name) if files else None
+    return match.group(1).strip(' _-') if match else ''
+
+
+def session_streamer(state):
+    return state.get('streamer') or streamer_of(state.get('files', []))
+
+
 def new_session(paths):
     files = [str(Path(p.strip()).resolve()) for p in paths if p.strip()]
     if len(files) != len(set(files)):
@@ -172,7 +184,7 @@ def new_session(paths):
             raise ValueError('录像文件不存在')
     directory = SESSIONS / (datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
     directory.mkdir(parents=True)
-    state = {'created_at': time.time(), 'files': files, 'done': []}
+    state = {'created_at': time.time(), 'files': files, 'streamer': streamer_of(files), 'done': []}
     (directory / 'state.json').write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
     return directory
 
@@ -416,7 +428,7 @@ def axis_pending():
         if not axis_job_ready(session.state):
             continue
         jobs.append({'session': str(session.dir), 'created_at': session.state['created_at'],
-                     'parts': session_parts(session.state)})
+                     'streamer': session_streamer(session.state), 'parts': session_parts(session.state)})
     print(json.dumps(jobs, ensure_ascii=False))
 
 
@@ -430,7 +442,8 @@ def review_pending():
             continue
         jobs.append({'session': str(session.dir), 'first_notified_at': job.get('finished_at'),
                      'notified_at': job.get('notified_at') or job.get('finished_at'),
-                     'revision': job.get('revision', 0), 'review_token': review_token(session.dir), 'parts': session_parts(session.state)})
+                     'revision': job.get('revision', 0), 'review_token': review_token(session.dir),
+                     'streamer': session_streamer(session.state), 'parts': session_parts(session.state)})
     print(json.dumps(jobs, ensure_ascii=False))
 
 
@@ -480,6 +493,8 @@ def axis_done(directory):
                 revised_at=now if revision else None, notified_at=now, revision=revision, entries=len(entries), review_nonce=uuid.uuid4().hex)
     token = review_token(session.dir)
     title = f'歌曲轴第 {revision} 次修改版' if revision else '歌曲轴做好了'
+    streamer = session_streamer(session.state)
+    title = f'{streamer} 的{title}' if streamer else title
     notify(f'{title}，共 {len(entries)} 条，其中 {pending} 条待核对。\n\n{numbered(text)}\n\n'
            f'修改：回复“修改 {token} 你的修改意见”。\n'
            f'确认并发评论：回复“确认 {token}”。只接受配置的审核人。\n'
@@ -834,7 +849,8 @@ def main():
         notify('直播结束，录制完成，开始上传投稿')
     elif args.command == 'hook-uploaded':
         directory = new_session(sys.stdin.read().splitlines())
-        notify(f'投稿已提交，开始后续处理（检查、转写、字幕，歌曲轴交给 Mac）\n会话：{directory}')
+        streamer = Session(directory).state['streamer']
+        notify(f'{streamer + "：" if streamer else ""}投稿已提交，开始后续处理（检查、转写、字幕，歌曲轴交给 Mac）\n会话：{directory}')
         spawn_process(directory)
     elif args.command == 'notify-test':
         notify('录播服务器测试通知：能看到这条说明飞书机器人配好了')

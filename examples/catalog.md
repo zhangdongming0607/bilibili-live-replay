@@ -1,6 +1,6 @@
 # 历史曲库（空模板）
 
-这里不附带任何真实主播的歌单。可以用 `tools/catalog.py` 从自己核对过的歌曲轴生成私有曲库，再设置 `LIVE_REPLAY_CATALOG`。
+这里不附带任何真实主播的歌单。可以用 `tools/catalog.py` 从自己核对过的歌曲轴生成私有曲库，再设置 `LIVE_REPLAY_CATALOG`；录多位主播时每人一份，放进 `LIVE_REPLAY_CATALOG_DIR`。
 
 曲库只是检索线索。不能因为历史唱过，就认定本场也唱了；来源不可靠的原唱信息仍需核对。
 

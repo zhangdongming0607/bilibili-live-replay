@@ -36,7 +36,7 @@ ssh -L 19159:127.0.0.1:19159 replay-server
 
 ## 3. 接入三个钩子
 
-在 biliup 目标直播间的“处理流程”中配置 `run`：
+在 biliup 每个目标直播间的“处理流程”中配置 `run`（录几位主播就每个直播间都配）：
 
 | 阶段 | 命令 |
 |---|---|
@@ -44,7 +44,7 @@ ssh -L 19159:127.0.0.1:19159 replay-server
 | 下载后处理 | `python3 /srv/replay/replay.py hook-downloaded` |
 | 上传后处理 | `python3 /srv/replay/replay.py hook-uploaded` |
 
-上传后钩子通过标准输入接收本次视频绝对路径，每行一条；只有视频文件，不要传 XML 弹幕、封面或尚在写入的片段。按实际 biliup 版本先用短测试录像确认此输入格式。钩子建立新会话并启动独立 systemd 单元，重启 biliup 不会直接杀掉处理程序。
+上传后钩子通过标准输入接收本次视频绝对路径，每行一条；只有视频文件，不要传 XML 弹幕、封面或尚在写入的片段。主播名从文件名开头取，保留 biliup 默认的“主播名 + 开播时间”文件名模板，Mac 端才能按主播挑曲库。按实际 biliup 版本先用短测试录像确认此输入格式。钩子建立新会话并启动独立 systemd 单元，重启 biliup 不会直接杀掉处理程序。
 
 处理顺序是 `check → audio → asr → subtitles → axis_task → find_archive → subtitle_upload`。每步成功写入会话 `state.json`；歌曲轴登记后无需等 Mac，字幕分支继续。`check` 记录解码错误，不把“执行过检查”当作检查通过；有警告时应在最终公开前处理。
 
@@ -71,7 +71,7 @@ python3 /srv/replay/replay.py start /srv/replay/sessions/会话名
 
 ## 5. Mac 工作端
 
-克隆本仓库，复制 `examples/mac.env.example` 为 `mac/.env` 并 `chmod 600`。配置 SSH 别名、飞书群、审核人的 sender ID、已有模型目录。首次 SSH 连接由你核对主机指纹并配置登录密钥。
+克隆本仓库，复制 `examples/mac.env.example` 为 `mac/.env` 并 `chmod 600`。配置 SSH 别名、飞书群、审核人的 sender ID、已有模型目录；有曲库的话，只录一位主播配 `LIVE_REPLAY_CATALOG`，录多位配 `LIVE_REPLAY_CATALOG_DIR`。首次 SSH 连接由你核对主机指纹并配置登录密钥。
 
 安装并登录 [Codex CLI](https://learn.chatgpt.com/docs/non-interactive-mode)；安装 `numpy` 和 `mlx-whisper` 到自己的 Python 环境，提前下载所选模型。工作端不会代为下载大模型。未指定 `LIVE_REPLAY_CODEX_MODEL` 时沿用用户模型配置。
 

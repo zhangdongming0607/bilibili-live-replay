@@ -157,6 +157,24 @@ class SessionTests(unittest.TestCase):
         self.assertIn('2#00:00:02 Two',text)
 
 
+class StreamerTests(unittest.TestCase):
+    def test_streamer_from_biliup_filename(self):
+        self.assertEqual(replay.streamer_of(['/srv/biliup/示例主播2026-10-25T13_29_56.flv']),'示例主播')
+        self.assertEqual(replay.streamer_of(['/x/Some Singer_2026-01-02T03_04_05.flv']),'Some Singer')
+        self.assertEqual(replay.streamer_of(['/x/custom.flv']),'')
+        self.assertEqual(replay.session_streamer({'files':['/x/旧会话2026-01-02T03_04_05.flv']}),'旧会话')
+
+    def test_catalog_per_streamer_never_borrows_another(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp)/'甲.md').write_text('# 甲')
+            with patch.dict(os.environ,{'LIVE_REPLAY_CATALOG_DIR':tmp,'LIVE_REPLAY_CATALOG':str(Path(tmp)/'甲.md')}):
+                self.assertEqual(worker.catalog_for('甲'),Path(tmp)/'甲.md')
+                self.assertEqual(worker.catalog_for('乙'),ROOT/'examples/catalog.md')
+                self.assertEqual(worker.catalog_for(''),ROOT/'examples/catalog.md')
+            with patch.dict(os.environ,{'LIVE_REPLAY_CATALOG_DIR':'','LIVE_REPLAY_CATALOG':str(Path(tmp)/'甲.md')}):
+                self.assertEqual(worker.catalog_for('乙'),Path(tmp)/'甲.md')
+
+
 class ReviewTests(unittest.TestCase):
     def test_review_requires_exact_current_code(self):
         self.assertIsNone(worker.review_command('确认','abcd'))
